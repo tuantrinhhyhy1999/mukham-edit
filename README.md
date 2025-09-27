@@ -15,7 +15,7 @@
 - added face-upscaler opacity slider
 - nsfw-detector now only checks random 100 frames
 - added custom foreground painting
-- ui changes (gradio 3.40)
+- ui changes (gradio 4.44.1)
 - added swap-iteration (may increase face likeliness)
 - added date-time option for output name
 

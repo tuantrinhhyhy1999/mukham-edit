@@ -198,6 +198,24 @@ def process(
 
     if crop_top > crop_bott:
         crop_top, crop_bott = crop_bott, crop_top
+
+    if frame_selection_ranges is None:
+        frame_selection_ranges = []
+    else:
+        def _is_valid_range_value(val):
+            if val is None:
+                return False
+            if isinstance(val, (float, np.floating)):
+                return not np.isnan(val)
+            return True
+
+        frame_selection_ranges = [
+            list(rng.tolist()) if hasattr(rng, "tolist") else list(rng)
+            for rng in frame_selection_ranges
+        ]
+        frame_selection_ranges = [
+            rng for rng in frame_selection_ranges if len(rng) >= 2 and all(_is_valid_range_value(v) for v in rng[:2])
+        ]
     if crop_left > crop_right:
         crop_left, crop_right = crop_right, crop_left
     crop_mask = (crop_top, 511 - crop_bott, crop_left, 511 - crop_right)
@@ -431,7 +449,7 @@ with gr.Blocks(css=css, theme=gr.themes.Default()) as interface:
         with gr.Row():
             with gr.Column(scale=0.35):
                 with gr.Tabs():
-                    with gr.TabItem("📄 Input"):
+                    with gr.Tab("📄 Input"):
                         swap_condition = gr.Dropdown(
                             gv.FACE_DETECT_CONDITIONS,
                             info="Choose which face or faces in the target image to swap.",
@@ -494,7 +512,7 @@ with gr.Blocks(css=css, theme=gr.themes.Default()) as interface:
 
                             with gr.Box(visible=True) as input_video_group:
                                 with gr.Column():
-                                    video_widget = gr.Text if PREFER_TEXT_WIDGET else gr.Video
+                                    video_widget = gr.Textbox if PREFER_TEXT_WIDGET else gr.Video
                                     video_input = video_widget(
                                         label="Target Video", interactive=True,
                                     )
@@ -505,24 +523,25 @@ with gr.Blocks(css=css, theme=gr.themes.Default()) as interface:
                                         use_frame_selection = gr.Checkbox(
                                             label="Use frame selection", value=False, interactive=True,
                                         )
-                                        frame_selection_ranges = gr.Numpy(
+                                        frame_selection_ranges = gr.Dataframe(
                                             headers=["Start Frame", "End Frame"],
                                             datatype=["number", "number"],
                                             row_count=1,
                                             col_count=(2, "fixed"),
-                                            interactive=True
+                                            interactive=True,
+                                            type="numpy",
                                         )
 
                             ## ------------------------------ TARGET DIRECTORY ------------------------------
 
                             with gr.Box(visible=False) as input_directory_group:
-                                directory_input = gr.Text(
+                                directory_input = gr.Textbox(
                                     label="Target Image Directory", interactive=True
                                 )
 
                     ## ------------------------------ TAB MODEL ------------------------------
 
-                    with gr.TabItem("🎚️ Model"):
+                    with gr.Tab("🎚️ Model"):
                         with gr.Accordion("Swapper", open=True):
                             with gr.Row():
                                 swap_iteration = gr.Slider(
@@ -561,7 +580,7 @@ with gr.Blocks(css=css, theme=gr.themes.Default()) as interface:
 
                     ## ------------------------------ TAB POST-PROCESS ------------------------------
 
-                    with gr.TabItem("🪄 Post-Process"):
+                    with gr.Tab("🪄 Post-Process"):
                         with gr.Row():
                             face_enhancer_name = gr.Dropdown(
                                 gv.FACE_ENHANCER_LIST,
@@ -664,14 +683,14 @@ with gr.Blocks(css=css, theme=gr.themes.Default()) as interface:
 
                     ## ------------------------------ TAB OUTPUT ------------------------------
 
-                    with gr.TabItem("📤 Output"):
-                        output_directory = gr.Text(
+                    with gr.Tab("📤 Output"):
+                        output_directory = gr.Textbox(
                             label="Output Directory",
                             value=gv.DEFAULT_OUTPUT_PATH,
                             interactive=True,
                         )
                         with gr.Group():
-                            output_name = gr.Text(
+                            output_name = gr.Textbox(
                                 label="Output Name", value="Result", interactive=True
                             )
                             use_datetime_suffix = gr.Checkbox(
@@ -696,7 +715,7 @@ with gr.Blocks(css=css, theme=gr.themes.Default()) as interface:
                             )
 
                     ## ------------------------------ TAB PERFORMANCE ------------------------------
-                    with gr.TabItem("🛠️ Performance"):
+                    with gr.Tab("🛠️ Performance"):
                         preview_resolution = gr.Dropdown(
                             gv.RESOLUTIONS,
                             label="Preview Resolution",
@@ -795,7 +814,7 @@ with gr.Blocks(css=css, theme=gr.themes.Default()) as interface:
                 ## ------------------------------ PREVIEW ------------------------------
 
                 with gr.Tabs():
-                    with gr.TabItem("Preview"):
+                    with gr.Tab("Preview"):
 
                         preview_image = gr.Image(
                             label="Preview", type="numpy", interactive=False, height=WIDGET_PREVIEW_HEIGHT,
@@ -828,7 +847,7 @@ with gr.Blocks(css=css, theme=gr.themes.Default()) as interface:
 
                     ## ------------------------------ FOREGROUND MASK ------------------------------
 
-                    with gr.TabItem("Paint Foreground"):
+                    with gr.Tab("Paint Foreground"):
                         with gr.Box() as fg_mask_group:
                             with gr.Row():
                                 with gr.Row():
@@ -854,7 +873,7 @@ with gr.Blocks(css=css, theme=gr.themes.Default()) as interface:
 
                     ## ------------------------------ COLLECT FACE ------------------------------
 
-                    with gr.TabItem("Collected Faces"):
+                    with gr.Tab("Collected Faces"):
                         collected_faces = gr.Gallery(
                             label="Faces",
                             show_label=False,
